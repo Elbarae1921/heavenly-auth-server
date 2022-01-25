@@ -13,6 +13,13 @@ func init() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
+
+	// check if rsa.private file exists, if it doesn't, log fatal
+	_, err = os.Stat("./rsa.private")
+	if os.IsNotExist(err) {
+		log.Fatal("Error: rsa.private file not found")
+	}
+
 }
 
 func main() {

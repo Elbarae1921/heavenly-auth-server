@@ -5,6 +5,7 @@ import (
 	"log"
 	"main/gmessages"
 	"main/packets"
+	"main/utils"
 	"net"
 
 	"github.com/vmihailenco/msgpack/v5"
@@ -117,7 +118,13 @@ func (as *AuthServer) handleLogicChannel(logic <-chan interface{}, send chan<- p
 }
 
 func (as *AuthServer) handleLogin(gmessages.LoginMessage) ([]byte, error) {
-	// handle login
+	// load our private key
+	key, err := utils.LoadPrivateKey()
+	// generate a new token
+	if err != nil {
+		return nil, err
+	}
+
 	return []byte("token"), nil
 }
 

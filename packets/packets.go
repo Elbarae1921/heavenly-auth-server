@@ -1,6 +1,8 @@
 package packets
 
-import "main/gmessages"
+import (
+	"main/gmessages"
+)
 
 type Packet struct {
 	ID      uint8
@@ -9,8 +11,13 @@ type Packet struct {
 }
 
 type TokenPacket struct {
-	Token     string
+	Token     Token
 	Signature string
+}
+
+type Token struct {
+	UserId    uint64
+	ExpiresAt uint64
 }
 
 type ReturnPacket struct {
