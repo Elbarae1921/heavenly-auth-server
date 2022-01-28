@@ -1,0 +1,34 @@
+version: "3.8"
+services:
+
+  # app:
+  #   container_name: auth-server
+  #   restart: unless-stopped
+  #   tty: true
+  #   build: .
+  #   env_file:
+  #     - .env
+  #   networks:
+  #     - untitledmmo
+  #   depends_on:
+  #     - db
+
+  db:
+    image: postgres:12-alpine
+    container_name: db
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
+    volumes:
+      - pgsql-volume:/var/lib/postgresql/data:delegated
+    networks:
+      - untitledmmo
+
+volumes:
+  pgsql-volume:
+
+networks:
+  untitledmmo:
+    driver: bridge

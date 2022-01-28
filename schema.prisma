@@ -6,16 +6,13 @@ datasource db {
 
 generator db {
     provider = "go run github.com/prisma/prisma-client-go"
-    // set the output folder and package name
-    // output           = "./your-folder"
-    // package          = "yourpackagename"
 }
 
-model Post {
-    id        String   @default(cuid()) @id
+model Account {
+    id        BigInt   @id @default(autoincrement())
+    username  String   @unique
+    password  String   @db.VarChar(255)
+    email     String   @db.VarChar(255)
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-    title     String
-    published Boolean
-    desc      String?
 }
