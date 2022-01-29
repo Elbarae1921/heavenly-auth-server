@@ -17,7 +17,7 @@ type TokenPacket struct {
 
 type Token struct {
 	UserId    uint64
-	ExpiresAt uint64
+	ExpiresAt int64
 }
 
 type ReturnPacket struct {

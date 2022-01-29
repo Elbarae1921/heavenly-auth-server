@@ -34,7 +34,7 @@ func main() {
 
 	for {
 		// create buffer
-		conn, err := as.N_TCPListen.Accept()
+		conn, err := as.TCPListen.Accept()
 		log.Println("Received connection from ", conn.RemoteAddr())
 		if err != nil {
 			continue
