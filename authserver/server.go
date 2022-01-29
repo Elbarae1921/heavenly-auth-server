@@ -3,6 +3,8 @@ package authserver
 import (
 	"encoding/gob"
 	"log"
+	"main/authservice"
+	"main/db"
 	"main/gmessages"
 	"main/packets"
 	"main/utils"
@@ -14,7 +16,8 @@ import (
 type AuthServer struct {
 	ip          string
 	port        string
-	N_TCPListen *net.TCPListener
+	TCPListen   *net.TCPListener
+	AuthService *authservice.AuthService
 }
 
 func Start(ip string, port string) (*AuthServer, error) {
@@ -27,7 +30,25 @@ func Start(ip string, port string) (*AuthServer, error) {
 		return nil, err
 	}
 
+	as.initializeAuthService()
+
 	return as, nil
+
+}
+
+func (as *AuthServer) initializeAuthService() {
+	as.AuthService = &authservice.AuthService{
+		Client: db.NewClient(),
+	}
+	if err := as.AuthService.Client.Prisma.Connect(); err != nil {
+		panic(err)
+	}
+
+	defer func() {
+		if err := as.AuthService.Client.Prisma.Disconnect(); err != nil {
+			panic(err)
+		}
+	}()
 
 }
 
@@ -37,7 +58,7 @@ func (as *AuthServer) listen() (bool, error) {
 		return false, err
 	}
 
-	as.N_TCPListen, err = net.ListenTCP("tcp", localAddress)
+	as.TCPListen, err = net.ListenTCP("tcp", localAddress)
 	log.Println("Listening on ", as.ip+":"+as.port)
 
 	if err != nil {
@@ -71,6 +92,7 @@ func (as *AuthServer) handleReadChannel(receive <-chan packets.Packet, logic cha
 		if packetId == packets.PACKETS_STRING_TO_INT["MSG_LOGIN"] {
 			// msgpack decode the packet
 			err := msgpack.Unmarshal(packet.Content, &loginMessage)
+
 			if err != nil {
 				log.Println("Error unmarshalling packet: ", err)
 				// panic(err)
@@ -117,17 +139,6 @@ func (as *AuthServer) handleLogicChannel(logic <-chan interface{}, send chan<- p
 	}
 }
 
-func (as *AuthServer) handleLogin(gmessages.LoginMessage) ([]byte, error) {
-	// load our private key
-	key, err := utils.LoadPrivateKey()
-	// generate a new token
-	if err != nil {
-		return nil, err
-	}
-
-	return []byte("token"), nil
-}
-
 func (as *AuthServer) ListenForPackets(conn net.Conn, receive chan<- packets.Packet) {
 	defer conn.Close()
 	log.Println("Listening for packets")
@@ -153,4 +164,38 @@ func (as *AuthServer) ListenForPackets(conn net.Conn, receive chan<- packets.Pac
 
 		receive <- packet
 	}
+}
+
+func (as *AuthServer) handleLogin(data gmessages.LoginMessage) ([]byte, error) {
+	// load our private key
+	key, err := utils.LoadPrivateKey()
+	// generate a new token
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := as.AuthService.Login(data.UserName, data.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	// sign the token
+	signature, err := utils.GenerateSignature(*token, key)
+	if err != nil {
+		return nil, err
+	}
+
+	// msg pack the token and signature
+	tokenPack := &packets.TokenPacket{
+		Token:     *token,
+		Signature: string(signature),
+	}
+
+	// msg pack the token
+	tokenPackBytes, err := msgpack.Marshal(tokenPack)
+	if err != nil {
+		return nil, err
+	}
+
+	return tokenPackBytes, nil
 }
