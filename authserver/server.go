@@ -9,6 +9,7 @@ import (
 	"main/packets"
 	"main/utils"
 	"net"
+	"reflect"
 
 	"github.com/vmihailenco/msgpack/v5"
 )
@@ -73,7 +74,7 @@ func (as *AuthServer) InitializeChannels() (chan<- packets.Packet, chan<- packet
 	log.Println("Initializing channels")
 	receive := make(chan packets.Packet, 10)
 	send := make(chan packets.Packet, 10)
-	logic := make(chan interface{}, 40)
+	logic := make(chan packets.PacketDTO, 10)
 	go as.handleWriteChannel(send)
 	go as.handleReadChannel(receive, logic)
 	go as.handleLogicChannel(logic, send)
@@ -81,27 +82,49 @@ func (as *AuthServer) InitializeChannels() (chan<- packets.Packet, chan<- packet
 	return receive, send
 }
 
-func (as *AuthServer) handleReadChannel(receive <-chan packets.Packet, logic chan<- interface{}) {
+func (as *AuthServer) handleReadChannel(receive <-chan packets.Packet, logic chan<- packets.PacketDTO) {
 	log.Println("Handling read channel")
 	for {
 		packet := <-receive
-		log.Println("Received packet from ", packet.Source)
 		packetId := packet.ID
-		var loginMessage gmessages.LoginMessage
-		// check if our packet is a valid one using our map
-		if packetId == packets.PACKETS_STRING_TO_INT["MSG_LOGIN"] {
-			// msgpack decode the packet
-			err := msgpack.Unmarshal(packet.Content, &loginMessage)
-
-			if err != nil {
-				log.Println("Error unmarshalling packet: ", err)
-				// panic(err)
+		// var loginMessage gmessages.LoginMessage
+		// check if our packet id is a proper key for our map
+		if packetString, ok := packets.PACKETS_INT_TO_STRING[packetId]; ok {
+			log.Printf("Received %s\n", packetString)
+			// get the interface associated with the packetString
+			if packetInterface, ok := packets.PACKET_TO_GAME_MESSAGE[packetString]; ok {
+				var message = reflect.New(reflect.TypeOf(packetInterface)).Interface()
+				// get the type of message interface
+				messageType := reflect.TypeOf(message)
+				// log it
+				log.Println("Message type: ", messageType)
+				// get the type of packetInterface
+				// t := packetInterface.(type)
+				// print the type
+				// log.Println("Type: ", t)
+				// var message interface{}
 			}
-			// handle login
-			logic <- &loginMessage
-		}
 
-		log.Println("Packet ID: ", packetId)
+		}
+		// check if our packet is a valid one using our map
+		// if packetId == packets.PACKETS_STRING_TO_INT["MSG_LOGIN"] {
+		// 	// msgpack decode the packet
+		// 	err := msgpack.Unmarshal(packet.Content, &loginMessage)
+
+		// 	if err != nil {
+		// 		log.Println("Error unmarshalling packet: ", err)
+		// 		// panic(err)
+		// 	}
+
+		// 	logic <- packets.Packet{
+		// 		ID:      packetId,
+		// 		Source:  packet.Source,
+		// 		Content: packet.Content,
+		// 		Message: &loginMessage,
+		// 	}
+
+		// }
+
 	}
 }
 
@@ -119,22 +142,22 @@ func (as *AuthServer) handleWriteChannel(send <-chan packets.Packet) {
 	}
 }
 
-func (as *AuthServer) handleLogicChannel(logic <-chan interface{}, send chan<- packets.Packet) {
+func (as *AuthServer) handleLogicChannel(logic <-chan packets.PacketDTO, send chan<- packets.Packet) {
 	log.Println("Handling logic channel")
 	for {
 		packet := <-logic
-		if packetGameMessage, ok := packet.(*gmessages.LoginMessage); ok {
+		if packetGameMessage, ok := packet.Message.(*gmessages.LoginMessage); ok {
 			log.Println("Received login message")
 
-			// handle login
-			token, err := as.handleLogin(*packetGameMessage)
+			// // handle login
+			_, err := as.handleLogin(*packetGameMessage)
 			if err != nil {
 				// validate error here
 			}
-			send <- packets.Packet{
-				Source:  packetGameMessage.UserIp,
-				Content: token,
-			}
+			// send <- packets.Packet{
+			// 	Source:  packetGameMessage.UserIp,
+			// 	Content: token,
+			// }
 		}
 	}
 }
@@ -157,6 +180,7 @@ func (as *AuthServer) ListenForPackets(conn net.Conn, receive chan<- packets.Pac
 		var packet packets.Packet
 
 		err = msgpack.Unmarshal(buffer, &packet)
+		packet.Source = conn.RemoteAddr().String()
 		if err != nil {
 			log.Println("Error unmarshalling packet: ", err)
 			// panic(err)

@@ -1,12 +1,15 @@
 package packets
 
-import (
-	"main/gmessages"
-)
+import "main/gmessages"
 
 type Packet struct {
 	ID      uint8
 	Content []byte
+	Source  string
+}
+
+type PacketDTO struct {
+	Message interface{}
 	Source  string
 }
 
@@ -33,6 +36,6 @@ var PACKETS_STRING_TO_INT = map[string]uint8{
 	"MSG_LOGIN": 101,
 }
 
-var PACKET_TO_GAME_MESSAGE = map[string]gmessages.LoginMessage{
-	"MSG_LOGIN": {},
+var PACKET_TO_GAME_MESSAGE = map[string]interface{}{
+	"MSG_LOGIN": gmessages.LoginMessage{},
 }
