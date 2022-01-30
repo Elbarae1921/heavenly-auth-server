@@ -95,10 +95,10 @@ func (as *AuthServer) listen() (bool, error) {
 }
 
 // Returns channels for reading and writing
-func (as *AuthServer) InitializeChannels() (chan<- packets.PacketWithConn, chan<- packets.ReturnPacket) {
+func (as *AuthServer) InitializeChannels() (chan<- packets.PacketWithConnDTO, chan<- packets.ReturnPacketDTO) {
 	log.Println("Initializing channels")
-	receive := make(chan packets.PacketWithConn, 10)
-	send := make(chan packets.ReturnPacket, 10)
+	receive := make(chan packets.PacketWithConnDTO, 10)
+	send := make(chan packets.ReturnPacketDTO, 10)
 	logic := make(chan packets.PacketDTO, 10)
 	go as.handleWriteChannel(send)
 	go as.handleReadChannel(receive, logic)
@@ -107,7 +107,7 @@ func (as *AuthServer) InitializeChannels() (chan<- packets.PacketWithConn, chan<
 	return receive, send
 }
 
-func (as *AuthServer) handleReadChannel(receive <-chan packets.PacketWithConn, logic chan<- packets.PacketDTO) {
+func (as *AuthServer) handleReadChannel(receive <-chan packets.PacketWithConnDTO, logic chan<- packets.PacketDTO) {
 	log.Println("Initialized read channel")
 	for {
 		packet := <-receive
@@ -142,16 +142,25 @@ func (as *AuthServer) handleReadChannel(receive <-chan packets.PacketWithConn, l
 	}
 }
 
-func (as *AuthServer) handleWriteChannel(send <-chan packets.ReturnPacket) {
+func (as *AuthServer) handleWriteChannel(send <-chan packets.ReturnPacketDTO) {
 	log.Println("Initialized write channels")
 	for {
 		packet := <-send
-		packet.Conn.Write(packet.Content)
+		returnPacket := &packets.ReturnPacket{
+			ID:      packet.ID,
+			Content: packet.Content,
+		}
+
+		bytes, err := msgpack.Marshal(returnPacket)
+		if err != nil {
+			log.Printf("Error marshalling packet: %s\n", err)
+		}
+		packet.Conn.Write(bytes)
 	}
 }
 
 //$2a$10$KAene/IdZcDp4szlMghh5OySlP9oCdqbALGIEBqNPdBJ5G7vajYri
-func (as *AuthServer) handleLogicChannel(logic <-chan packets.PacketDTO, send chan<- packets.ReturnPacket) {
+func (as *AuthServer) handleLogicChannel(logic <-chan packets.PacketDTO, send chan<- packets.ReturnPacketDTO) {
 	log.Println("Initialized logic channel")
 	for {
 		packet := <-logic
@@ -168,7 +177,7 @@ func (as *AuthServer) handleLogicChannel(logic <-chan packets.PacketDTO, send ch
 			if err.Interface() != nil {
 				// get the error string from the error interface
 				errString := err.Interface().(error).Error()
-				send <- packets.ReturnPacket{
+				send <- packets.ReturnPacketDTO{
 					ID:      packet.ID,
 					Conn:    packet.Connection,
 					Content: []byte(errString),
@@ -176,7 +185,7 @@ func (as *AuthServer) handleLogicChannel(logic <-chan packets.PacketDTO, send ch
 				continue
 			}
 
-			send <- packets.ReturnPacket{
+			send <- packets.ReturnPacketDTO{
 				ID:      packet.ID,
 				Conn:    packet.Connection,
 				Content: retVal.Interface().([]byte),
@@ -185,45 +194,35 @@ func (as *AuthServer) handleLogicChannel(logic <-chan packets.PacketDTO, send ch
 	}
 }
 
-func (as *AuthServer) ListenForPackets(conn net.Conn, receive chan<- packets.PacketWithConn) {
+func (as *AuthServer) ListenForPackets(conn net.Conn, receive chan<- packets.PacketWithConnDTO) {
 	log.Println("Listening for packets from connection: ", conn.RemoteAddr())
 	buffer := make([]byte, 1024*4)
 	for {
 		// read the data into the buffer
-		length, err := conn.Read(buffer)
+		_, err := conn.Read(buffer)
 
 		if err != nil {
+			log.Println("Error reading from connection: ", err)
+			return
+		}
+
+		var packet packets.Packet
+
+		err = msgpack.Unmarshal(buffer, &packet)
+		if err != nil {
+			log.Println("Error unmarshalling packet: ", err)
 			conn.Close()
 			continue
 		}
 
-		// check if length is over 0, if it is, we have data, if not, continue to next iteration
-		if length > 0 {
-
-			log.Println("Read ", length, " bytes")
-
-			//log receive connection
-			// log.Println("Received packet from ", conn.RemoteAddr())
-
-			var packet packets.Packet
-
-			err = msgpack.Unmarshal(buffer, &packet)
-			if err != nil {
-				log.Println("Error unmarshalling packet: ", err)
-				conn.Close()
-				continue
-			}
-
-			// create a new packet with conn
-			packetWithConn := packets.PacketWithConn{
-				ID:      packet.ID,
-				Content: packet.Content,
-				Conn:    conn,
-			}
-
-			receive <- packetWithConn
-		} else {
-			continue
+		// create a new packet with conn
+		packetWithConn := packets.PacketWithConnDTO{
+			ID:      packet.ID,
+			Content: packet.Content,
+			Conn:    conn,
 		}
+
+		receive <- packetWithConn
 	}
+
 }

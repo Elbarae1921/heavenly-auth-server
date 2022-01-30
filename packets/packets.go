@@ -10,13 +10,7 @@ type Packet struct {
 	Content []byte
 }
 
-type ReturnPacket struct {
-	ID      uint8
-	Content []byte
-	Conn    net.Conn
-}
-
-type PacketWithConn struct {
+type PacketWithConnDTO struct {
 	ID      uint8
 	Content []byte
 	Conn    net.Conn
@@ -29,14 +23,25 @@ type PacketDTO struct {
 	PacketString string
 }
 
-type TokenPacket struct {
-	Token     Token
-	Signature string
+type ReturnPacketDTO struct {
+	ID      uint8
+	Content []byte
+	Conn    net.Conn
+}
+
+type ReturnPacket struct {
+	ID      uint8
+	Content []byte
 }
 
 type Token struct {
 	UserId    uint64
 	ExpiresAt int64
+}
+
+type TokenPacketContent struct {
+	Token     Token
+	Signature string
 }
 
 var PACKETS_INT_TO_STRING = map[uint8]string{

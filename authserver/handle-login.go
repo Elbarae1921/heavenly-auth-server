@@ -30,7 +30,7 @@ func (as *AuthServer) MSG_LOGINHandle(data interface{}) ([]byte, error) {
 	}
 
 	// msg pack the token and signature
-	tokenPack := &packets.TokenPacket{
+	tokenPack := &packets.TokenPacketContent{
 		Token:     *token,
 		Signature: string(signature),
 	}
