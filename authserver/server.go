@@ -2,10 +2,10 @@ package authserver
 
 import (
 	"encoding/gob"
+	"fmt"
 	"log"
 	"main/authservice"
 	"main/db"
-	"main/gmessages"
 	"main/packets"
 	"net"
 	"reflect"
@@ -86,43 +86,33 @@ func (as *AuthServer) handleReadChannel(receive <-chan packets.Packet, logic cha
 	for {
 		packet := <-receive
 		packetId := packet.ID
-		// var loginMessage gmessages.LoginMessage
 		// check if our packet id is a proper key for our map
 		if packetString, ok := packets.PACKETS_INT_TO_STRING[packetId]; ok {
 			log.Printf("Received %s\n", packetString)
 			// get the interface associated with the packetString
 			if packetInterface, ok := packets.PACKET_TO_GAME_MESSAGE[packetString]; ok {
 				var message = reflect.New(reflect.TypeOf(packetInterface)).Interface()
+				log.Println("Message: ", message)
 				// get the type of message interface
 				messageType := reflect.TypeOf(message)
-				// log it
 				log.Println("Message type: ", messageType)
-				// get the type of packetInterface
-				// t := packetInterface.(type)
-				// print the type
-				// log.Println("Type: ", t)
-				// var message interface{}
+				err := msgpack.Unmarshal(packet.Content, &messageType)
+
+				if err != nil {
+					log.Println("Error unmarshalling packet: ", err)
+					// panic(err)
+					//TODO close connection
+				}
+
+				logic <- packets.PacketDTO{
+					Source:       packet.Source,
+					Message:      &messageType,
+					PacketString: packetString,
+				}
+
 			}
 
 		}
-		// check if our packet is a valid one using our map
-		// if packetId == packets.PACKETS_STRING_TO_INT["MSG_LOGIN"] {
-		// 	// msgpack decode the packet
-		// 	err := msgpack.Unmarshal(packet.Content, &loginMessage)
-
-		// 	if err != nil {
-		// 		log.Println("Error unmarshalling packet: ", err)
-		// 		// panic(err)
-		// 	}
-
-		// 	logic <- packets.Packet{
-		// 		ID:      packetId,
-		// 		Source:  packet.Source,
-		// 		Content: packet.Content,
-		// 		Message: &loginMessage,
-		// 	}
-
-		// }
 
 	}
 }
@@ -145,19 +135,31 @@ func (as *AuthServer) handleLogicChannel(logic <-chan packets.PacketDTO, send ch
 	log.Println("Handling logic channel")
 	for {
 		packet := <-logic
-		if packetGameMessage, ok := packet.Message.(*gmessages.LoginMessage); ok {
-			log.Println("Received login message")
 
-			// // handle login
-			_, err := as.HandleLogin(*packetGameMessage)
-			if err != nil {
-				// validate error here
-			}
-			// send <- packets.Packet{
-			// 	Source:  packetGameMessage.UserIp,
-			// 	Content: token,
-			// }
-		}
+		// get our packet string
+		packetString := packet.PacketString
+		// get our source connection
+		// source := packet.Source
+
+		meth := reflect.ValueOf(as).MethodByName(packetString + "Handle")
+		fmt.Println(meth)
+		// if meth.IsValid() {
+		// meth.Call([]reflect.Value{reflect.ValueOf(as.AuthService), reflect.ValueOf(source)})
+		// }
+
+		// if packetGameMessage, ok := packet.Message.(*gmessages.LoginMessage); ok {
+		// 	log.Println("Received login message")
+
+		// 	// // handle login
+		// 	_, err := as.HandleLogin(*packetGameMessage)
+		// 	if err != nil {
+		// 		// validate error here
+		// 	}
+		// 	send <- packets.PacketDTO{
+		// 		Source:  packetGameMessage.UserIp,
+		// 		Content: token,
+		// 	}
+		// }
 	}
 }
 

@@ -29,7 +29,7 @@ func (as *AuthService) Login(username string, password string) (*packets.Token, 
 
 	if errors.Is(err, db.ErrNotFound) {
 		log.Printf("No record found for username: %s", username)
-		return nil, errors.New("No record found for username")
+		return nil, errors.New("no record found for username")
 	} else if err != nil {
 		log.Printf("Error occurred: %s", err)
 		return nil, err

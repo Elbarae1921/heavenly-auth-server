@@ -9,8 +9,9 @@ type Packet struct {
 }
 
 type PacketDTO struct {
-	Message interface{}
-	Source  string
+	Message      interface{}
+	Source       string
+	PacketString string
 }
 
 type TokenPacket struct {

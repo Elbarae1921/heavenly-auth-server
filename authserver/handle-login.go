@@ -8,7 +8,7 @@ import (
 	"github.com/vmihailenco/msgpack/v5"
 )
 
-func (as *AuthServer) HandleLogin(data gmessages.LoginMessage) ([]byte, error) {
+func (as *AuthServer) MSG_LOGINHandle(data gmessages.LoginMessage) ([]byte, error) {
 	// load our private key
 	key, err := utils.LoadPrivateKey()
 	// generate a new token
