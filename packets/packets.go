@@ -1,16 +1,31 @@
 package packets
 
-import "main/gmessages"
+import (
+	"main/gmessages"
+	"net"
+)
 
 type Packet struct {
 	ID      uint8
 	Content []byte
-	Source  string
+}
+
+type ReturnPacket struct {
+	ID      uint8
+	Content []byte
+	Conn    net.Conn
+}
+
+type PacketWithConn struct {
+	ID      uint8
+	Content []byte
+	Conn    net.Conn
 }
 
 type PacketDTO struct {
+	ID           uint8
 	Message      interface{}
-	Source       string
+	Connection   net.Conn
 	PacketString string
 }
 

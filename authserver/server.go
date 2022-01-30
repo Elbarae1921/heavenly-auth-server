@@ -10,7 +10,6 @@ import (
 	"net"
 	"os"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/vmihailenco/msgpack/v5"
@@ -96,10 +95,10 @@ func (as *AuthServer) listen() (bool, error) {
 }
 
 // Returns channels for reading and writing
-func (as *AuthServer) InitializeChannels() (chan<- packets.Packet, chan<- packets.Packet) {
+func (as *AuthServer) InitializeChannels() (chan<- packets.PacketWithConn, chan<- packets.ReturnPacket) {
 	log.Println("Initializing channels")
-	receive := make(chan packets.Packet, 10)
-	send := make(chan packets.Packet, 10)
+	receive := make(chan packets.PacketWithConn, 10)
+	send := make(chan packets.ReturnPacket, 10)
 	logic := make(chan packets.PacketDTO, 10)
 	go as.handleWriteChannel(send)
 	go as.handleReadChannel(receive, logic)
@@ -108,7 +107,7 @@ func (as *AuthServer) InitializeChannels() (chan<- packets.Packet, chan<- packet
 	return receive, send
 }
 
-func (as *AuthServer) handleReadChannel(receive <-chan packets.Packet, logic chan<- packets.PacketDTO) {
+func (as *AuthServer) handleReadChannel(receive <-chan packets.PacketWithConn, logic chan<- packets.PacketDTO) {
 	log.Println("Initialized read channel")
 	for {
 		packet := <-receive
@@ -125,10 +124,13 @@ func (as *AuthServer) handleReadChannel(receive <-chan packets.Packet, logic cha
 
 				if err != nil {
 					log.Println("Error unmarshalling packet: ", err)
+					packet.Conn.Close()
+					continue
 				}
 
 				logic <- packets.PacketDTO{
-					Source:       packet.Source,
+					ID:           packetId,
+					Connection:   packet.Conn,
 					Message:      message,
 					PacketString: packetString,
 				}
@@ -140,23 +142,16 @@ func (as *AuthServer) handleReadChannel(receive <-chan packets.Packet, logic cha
 	}
 }
 
-func (as *AuthServer) handleWriteChannel(send <-chan packets.Packet) {
+func (as *AuthServer) handleWriteChannel(send <-chan packets.ReturnPacket) {
 	log.Println("Initialized write channels")
 	for {
 		packet := <-send
-		_, err := net.Dial("tcp", packet.Source)
-		if err != nil {
-			log.Println("Error dialing: ", err)
-		}
-
-		// encoder := gob.NewEncoder(conn)
-		// encoder.Encode(packet.Content)
-		// conn.Write(packet.Content)
+		packet.Conn.Write(packet.Content)
 	}
 }
 
 //$2a$10$KAene/IdZcDp4szlMghh5OySlP9oCdqbALGIEBqNPdBJ5G7vajYri
-func (as *AuthServer) handleLogicChannel(logic <-chan packets.PacketDTO, send chan<- packets.Packet) {
+func (as *AuthServer) handleLogicChannel(logic <-chan packets.PacketDTO, send chan<- packets.ReturnPacket) {
 	log.Println("Initialized logic channel")
 	for {
 		packet := <-logic
@@ -173,46 +168,62 @@ func (as *AuthServer) handleLogicChannel(logic <-chan packets.PacketDTO, send ch
 			if err.Interface() != nil {
 				// get the error string from the error interface
 				errString := err.Interface().(error).Error()
-				send <- packets.Packet{
-					Source:  packet.Source + ":8888",
+				send <- packets.ReturnPacket{
+					ID:      packet.ID,
+					Conn:    packet.Connection,
 					Content: []byte(errString),
 				}
 				continue
 			}
 
-			send <- packets.Packet{
-				Source:  packet.Source + ":8888",
+			send <- packets.ReturnPacket{
+				ID:      packet.ID,
+				Conn:    packet.Connection,
 				Content: retVal.Interface().([]byte),
 			}
 		}
 	}
 }
 
-func (as *AuthServer) ListenForPackets(conn net.Conn, receive chan<- packets.Packet) {
-	defer conn.Close()
-	log.Println("Listening for packets")
+func (as *AuthServer) ListenForPackets(conn net.Conn, receive chan<- packets.PacketWithConn) {
+	log.Println("Listening for packets from connection: ", conn.RemoteAddr())
 	buffer := make([]byte, 1024*4)
 	for {
 		// read the data into the buffer
-		_, err := conn.Read(buffer)
-
-		//log receive connection
-		log.Println("Received packet from ", conn.RemoteAddr())
+		length, err := conn.Read(buffer)
 
 		if err != nil {
+			conn.Close()
 			continue
 		}
 
-		var packet packets.Packet
+		// check if length is over 0, if it is, we have data, if not, continue to next iteration
+		if length > 0 {
 
-		err = msgpack.Unmarshal(buffer, &packet)
-		// initialize a string that removes the : part of the ip address
-		packet.Source = strings.Split(packet.Source, ":")[0]
-		if err != nil {
-			log.Println("Error unmarshalling packet: ", err)
-			conn.Close()
+			log.Println("Read ", length, " bytes")
+
+			//log receive connection
+			// log.Println("Received packet from ", conn.RemoteAddr())
+
+			var packet packets.Packet
+
+			err = msgpack.Unmarshal(buffer, &packet)
+			if err != nil {
+				log.Println("Error unmarshalling packet: ", err)
+				conn.Close()
+				continue
+			}
+
+			// create a new packet with conn
+			packetWithConn := packets.PacketWithConn{
+				ID:      packet.ID,
+				Content: packet.Content,
+				Conn:    conn,
+			}
+
+			receive <- packetWithConn
+		} else {
+			continue
 		}
-
-		receive <- packet
 	}
 }
