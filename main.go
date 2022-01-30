@@ -38,9 +38,9 @@ func main() {
 	}()
 
 	for {
-		// create buffer
 		conn, err := as.TCPListen.Accept()
 		if err != nil {
+			log.Printf("Error accepting connection: %v", err)
 			continue
 		}
 
