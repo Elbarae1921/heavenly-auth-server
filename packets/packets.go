@@ -23,11 +23,6 @@ type Token struct {
 	ExpiresAt int64
 }
 
-type ReturnPacket struct {
-	Destination string
-	Content     []byte
-}
-
 var PACKETS_INT_TO_STRING = map[uint8]string{
 	101: "MSG_LOGIN",
 }

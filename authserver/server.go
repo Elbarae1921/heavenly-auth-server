@@ -7,7 +7,6 @@ import (
 	"main/db"
 	"main/gmessages"
 	"main/packets"
-	"main/utils"
 	"net"
 	"reflect"
 
@@ -150,7 +149,7 @@ func (as *AuthServer) handleLogicChannel(logic <-chan packets.PacketDTO, send ch
 			log.Println("Received login message")
 
 			// // handle login
-			_, err := as.handleLogin(*packetGameMessage)
+			_, err := as.HandleLogin(*packetGameMessage)
 			if err != nil {
 				// validate error here
 			}
@@ -188,38 +187,4 @@ func (as *AuthServer) ListenForPackets(conn net.Conn, receive chan<- packets.Pac
 
 		receive <- packet
 	}
-}
-
-func (as *AuthServer) handleLogin(data gmessages.LoginMessage) ([]byte, error) {
-	// load our private key
-	key, err := utils.LoadPrivateKey()
-	// generate a new token
-	if err != nil {
-		return nil, err
-	}
-
-	token, err := as.AuthService.Login(data.UserName, data.Password)
-	if err != nil {
-		return nil, err
-	}
-
-	// sign the token
-	signature, err := utils.GenerateSignature(*token, key)
-	if err != nil {
-		return nil, err
-	}
-
-	// msg pack the token and signature
-	tokenPack := &packets.TokenPacket{
-		Token:     *token,
-		Signature: string(signature),
-	}
-
-	// msg pack the token
-	tokenPackBytes, err := msgpack.Marshal(tokenPack)
-	if err != nil {
-		return nil, err
-	}
-
-	return tokenPackBytes, nil
 }
