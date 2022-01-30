@@ -6,6 +6,7 @@ import (
 	"log"
 	"main/authservice"
 	"main/db"
+	"main/gmessages"
 	"main/packets"
 	"net"
 	"reflect"
@@ -43,13 +44,6 @@ func (as *AuthServer) initializeAuthService() {
 	if err := as.AuthService.Client.Prisma.Connect(); err != nil {
 		panic(err)
 	}
-
-	defer func() {
-		if err := as.AuthService.Client.Prisma.Disconnect(); err != nil {
-			panic(err)
-		}
-	}()
-
 }
 
 func (as *AuthServer) listen() (bool, error) {
@@ -86,27 +80,23 @@ func (as *AuthServer) handleReadChannel(receive <-chan packets.Packet, logic cha
 	for {
 		packet := <-receive
 		packetId := packet.ID
+		var _ gmessages.LoginMessage
 		// check if our packet id is a proper key for our map
 		if packetString, ok := packets.PACKETS_INT_TO_STRING[packetId]; ok {
 			log.Printf("Received %s\n", packetString)
 			// get the interface associated with the packetString
 			if packetInterface, ok := packets.PACKET_TO_GAME_MESSAGE[packetString]; ok {
 				var message = reflect.New(reflect.TypeOf(packetInterface)).Interface()
-				log.Println("Message: ", message)
-				// get the type of message interface
-				messageType := reflect.TypeOf(message)
-				log.Println("Message type: ", messageType)
-				err := msgpack.Unmarshal(packet.Content, &messageType)
+
+				err := msgpack.Unmarshal(packet.Content, &message)
 
 				if err != nil {
 					log.Println("Error unmarshalling packet: ", err)
-					// panic(err)
-					//TODO close connection
 				}
 
 				logic <- packets.PacketDTO{
 					Source:       packet.Source,
-					Message:      &messageType,
+					Message:      message,
 					PacketString: packetString,
 				}
 
@@ -135,17 +125,22 @@ func (as *AuthServer) handleLogicChannel(logic <-chan packets.PacketDTO, send ch
 	log.Println("Handling logic channel")
 	for {
 		packet := <-logic
-
-		// get our packet string
 		packetString := packet.PacketString
-		// get our source connection
-		// source := packet.Source
 
-		meth := reflect.ValueOf(as).MethodByName(packetString + "Handle")
-		fmt.Println(meth)
-		// if meth.IsValid() {
-		// meth.Call([]reflect.Value{reflect.ValueOf(as.AuthService), reflect.ValueOf(source)})
-		// }
+		method := reflect.ValueOf(as).MethodByName(packetString + "Handle")
+		fmt.Println(&method)
+		if method.IsValid() {
+			// get the value of packet.Message
+			message := reflect.ValueOf(packet.Message).Interface()
+			log.Printf("Calling method %sHandle\n with interface value of %s", packetString, message)
+
+			// get return value of meth.Call
+			ret := method.Call([]reflect.Value{reflect.ValueOf(packet.Message)})
+
+			retVal := ret[0]
+
+			log.Println(retVal)
+		}
 
 		// if packetGameMessage, ok := packet.Message.(*gmessages.LoginMessage); ok {
 		// 	log.Println("Received login message")
