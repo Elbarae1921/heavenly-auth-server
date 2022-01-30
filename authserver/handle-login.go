@@ -1,6 +1,7 @@
 package authserver
 
 import (
+	"log"
 	"main/gmessages"
 	"main/packets"
 	"main/utils"
@@ -39,6 +40,8 @@ func (as *AuthServer) MSG_LOGINHandle(data interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	log.Println("tokenPackBytes: ", tokenPackBytes)
 
 	return tokenPackBytes, nil
 }

@@ -1,15 +1,17 @@
 package authserver
 
 import (
-	"encoding/gob"
-	"fmt"
+	"io"
 	"log"
 	"main/authservice"
 	"main/db"
 	"main/gmessages"
 	"main/packets"
 	"net"
+	"os"
 	"reflect"
+	"strings"
+	"time"
 
 	"github.com/vmihailenco/msgpack/v5"
 )
@@ -26,6 +28,8 @@ func Start(ip string, port string) (*AuthServer, error) {
 		ip:   ip,
 		port: port,
 	}
+
+	as.initializeLogFile()
 
 	if ok, err := as.listen(); !ok {
 		return nil, err
@@ -44,6 +48,35 @@ func (as *AuthServer) initializeAuthService() {
 	if err := as.AuthService.Client.Prisma.Connect(); err != nil {
 		panic(err)
 	}
+}
+
+func (as *AuthServer) initializeLogFile() {
+	// get the folder path where main.go is located
+	appPath, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// check if the logs folder exists
+	_, err = os.Stat(appPath + "/logs")
+	if os.IsNotExist(err) {
+		// if it doesn't, create it
+		err = os.Mkdir(appPath+"/logs", 0755)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	// check if today's log file exists
+	now := time.Now().Format("2006-01-02")
+	filename := appPath + "/logs/authserver-" + now + ".log"
+
+	logFile, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+	if err != nil {
+		panic(err)
+	}
+	mw := io.MultiWriter(os.Stdout, logFile)
+	log.SetOutput(mw)
 }
 
 func (as *AuthServer) listen() (bool, error) {
@@ -76,7 +109,7 @@ func (as *AuthServer) InitializeChannels() (chan<- packets.Packet, chan<- packet
 }
 
 func (as *AuthServer) handleReadChannel(receive <-chan packets.Packet, logic chan<- packets.PacketDTO) {
-	log.Println("Handling read channel")
+	log.Println("Initialized read channel")
 	for {
 		packet := <-receive
 		packetId := packet.ID
@@ -108,53 +141,50 @@ func (as *AuthServer) handleReadChannel(receive <-chan packets.Packet, logic cha
 }
 
 func (as *AuthServer) handleWriteChannel(send <-chan packets.Packet) {
-	log.Println("Handling write channels")
+	log.Println("Initialized write channels")
 	for {
 		packet := <-send
-		conn, err := net.Dial("tcp", packet.Source)
+		_, err := net.Dial("tcp", packet.Source)
 		if err != nil {
-			continue
+			log.Println("Error dialing: ", err)
 		}
-		encoder := gob.NewEncoder(conn)
-		encoder.Encode(packet.Content)
-		conn.Write(packet.Content)
+
+		// encoder := gob.NewEncoder(conn)
+		// encoder.Encode(packet.Content)
+		// conn.Write(packet.Content)
 	}
 }
 
+//$2a$10$KAene/IdZcDp4szlMghh5OySlP9oCdqbALGIEBqNPdBJ5G7vajYri
 func (as *AuthServer) handleLogicChannel(logic <-chan packets.PacketDTO, send chan<- packets.Packet) {
-	log.Println("Handling logic channel")
+	log.Println("Initialized logic channel")
 	for {
 		packet := <-logic
 		packetString := packet.PacketString
 
 		method := reflect.ValueOf(as).MethodByName(packetString + "Handle")
-		fmt.Println(&method)
 		if method.IsValid() {
-			// get the value of packet.Message
-			message := reflect.ValueOf(packet.Message).Interface()
-			log.Printf("Calling method %sHandle\n with interface value of %s", packetString, message)
-
-			// get return value of meth.Call
+			// get return value of method.Call
 			ret := method.Call([]reflect.Value{reflect.ValueOf(packet.Message)})
 
-			retVal := ret[0]
+			retVal, err := ret[0], ret[1]
 
-			log.Println(retVal)
+			// get reflect of err and check if it's nil
+			if err.Interface() != nil {
+				// get the error string from the error interface
+				errString := err.Interface().(error).Error()
+				send <- packets.Packet{
+					Source:  packet.Source + ":8888",
+					Content: []byte(errString),
+				}
+				continue
+			}
+
+			send <- packets.Packet{
+				Source:  packet.Source + ":8888",
+				Content: retVal.Interface().([]byte),
+			}
 		}
-
-		// if packetGameMessage, ok := packet.Message.(*gmessages.LoginMessage); ok {
-		// 	log.Println("Received login message")
-
-		// 	// // handle login
-		// 	_, err := as.HandleLogin(*packetGameMessage)
-		// 	if err != nil {
-		// 		// validate error here
-		// 	}
-		// 	send <- packets.PacketDTO{
-		// 		Source:  packetGameMessage.UserIp,
-		// 		Content: token,
-		// 	}
-		// }
 	}
 }
 
@@ -164,11 +194,11 @@ func (as *AuthServer) ListenForPackets(conn net.Conn, receive chan<- packets.Pac
 	buffer := make([]byte, 1024*4)
 	for {
 		// read the data into the buffer
-		length, err := conn.Read(buffer)
+		_, err := conn.Read(buffer)
 
-		log.Println("Received data from ", conn.RemoteAddr())
-		log.Println("Length: ", length)
-		//
+		//log receive connection
+		log.Println("Received packet from ", conn.RemoteAddr())
+
 		if err != nil {
 			continue
 		}
@@ -176,10 +206,11 @@ func (as *AuthServer) ListenForPackets(conn net.Conn, receive chan<- packets.Pac
 		var packet packets.Packet
 
 		err = msgpack.Unmarshal(buffer, &packet)
-		packet.Source = conn.RemoteAddr().String()
+		// initialize a string that removes the : part of the ip address
+		packet.Source = strings.Split(packet.Source, ":")[0]
 		if err != nil {
 			log.Println("Error unmarshalling packet: ", err)
-			// panic(err)
+			conn.Close()
 		}
 
 		receive <- packet

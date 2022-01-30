@@ -31,11 +31,15 @@ func main() {
 	}
 
 	receive, _ := as.InitializeChannels()
+	defer func() {
+		if err := as.AuthService.Client.Prisma.Disconnect(); err != nil {
+			panic(err)
+		}
+	}()
 
 	for {
 		// create buffer
 		conn, err := as.TCPListen.Accept()
-		log.Println("Received connection from ", conn.RemoteAddr())
 		if err != nil {
 			continue
 		}

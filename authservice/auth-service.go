@@ -27,18 +27,22 @@ func (as *AuthService) Login(username string, password string) (*packets.Token, 
 		db.Account.Username.Equals(username),
 	).Exec(ctx)
 
+	// if username is test then get the encrypted password
+	if username == "test" {
+		password, _ := bcrypt.GenerateFromPassword([]byte("test"), bcrypt.DefaultCost)
+		log.Println("password: ", string(password))
+	}
+
 	if errors.Is(err, db.ErrNotFound) {
-		log.Printf("No record found for username: %s", username)
-		return nil, errors.New("no record found for username")
+		return nil, errors.New("invalid credentials")
 	} else if err != nil {
 		log.Printf("Error occurred: %s", err)
-		return nil, err
+		return nil, errors.New("error occurred")
 	}
 
 	// check if the password matches with bcrypt CompareHashAndPassword
 	if err := bcrypt.CompareHashAndPassword([]byte(account.Password), passwordBytes); err != nil {
-		log.Printf("Attempted password: %s did not match account password", password)
-		return nil, err
+		return nil, errors.New("invalid credentials")
 	}
 	// create a timestamp that expires in 5 minutes
 	expiresAt := time.Now().Add(5 * time.Minute).Unix()
