@@ -41,7 +41,7 @@ type Token struct {
 
 type TokenPacketContent struct {
 	Token     Token
-	Signature string
+	Signature []byte
 }
 
 var PACKETS_INT_TO_STRING = map[uint8]string{

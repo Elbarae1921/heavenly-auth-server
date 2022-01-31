@@ -1,11 +1,11 @@
 package authserver
 
 import (
+	"bytes"
 	"io"
 	"log"
 	"main/authservice"
 	"main/db"
-	"main/gmessages"
 	"main/packets"
 	"net"
 	"os"
@@ -112,7 +112,6 @@ func (as *AuthServer) handleReadChannel(receive <-chan packets.PacketWithConnDTO
 	for {
 		packet := <-receive
 		packetId := packet.ID
-		var _ gmessages.LoginMessage
 		// check if our packet id is a proper key for our map
 		if packetString, ok := packets.PACKETS_INT_TO_STRING[packetId]; ok {
 			log.Printf("Received %s\n", packetString)
@@ -146,16 +145,18 @@ func (as *AuthServer) handleWriteChannel(send <-chan packets.ReturnPacketDTO) {
 	log.Println("Initialized write channels")
 	for {
 		packet := <-send
-		returnPacket := &packets.ReturnPacket{
-			ID:      packet.ID,
-			Content: packet.Content,
+
+		var buf bytes.Buffer
+
+		enc := msgpack.NewEncoder(&buf)
+		enc.UseArrayEncodedStructs(true)
+		err := enc.Encode(&packets.Packet{ID: packet.ID, Content: packet.Content})
+		if err != nil {
+			panic(err)
 		}
 
-		bytes, err := msgpack.Marshal(returnPacket)
-		if err != nil {
-			log.Printf("Error marshalling packet: %s\n", err)
-		}
-		packet.Conn.Write(bytes)
+		log.Println("Sending bytes: ", buf.Bytes())
+		packet.Conn.Write(buf.Bytes())
 	}
 }
 

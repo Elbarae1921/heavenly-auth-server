@@ -1,7 +1,7 @@
 package authserver
 
 import (
-	"log"
+	"bytes"
 	"main/gmessages"
 	"main/packets"
 	"main/utils"
@@ -32,16 +32,24 @@ func (as *AuthServer) MSG_LOGINHandle(data interface{}) ([]byte, error) {
 	// msg pack the token and signature
 	tokenPack := &packets.TokenPacketContent{
 		Token:     *token,
-		Signature: string(signature),
+		Signature: signature,
 	}
 
 	// msg pack the token
-	tokenPackBytes, err := msgpack.Marshal(tokenPack)
-	if err != nil {
+
+	var buf bytes.Buffer
+
+	enc := msgpack.NewEncoder(&buf)
+	enc.UseArrayEncodedStructs(true)
+	if err := enc.Encode(&tokenPack); err != nil {
 		return nil, err
 	}
 
-	log.Println("tokenPackBytes: ", tokenPackBytes)
+	// tokenPackBytes, err := msgpack.Marshal(tokenPack)
 
-	return tokenPackBytes, nil
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	return buf.Bytes(), nil
 }

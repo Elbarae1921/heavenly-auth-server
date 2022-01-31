@@ -18,5 +18,6 @@ func GenerateSignature(token packets.Token, key []byte) ([]byte, error) {
 	}
 
 	mac.Write(tokenBytes)
+
 	return mac.Sum(nil), nil
 }
