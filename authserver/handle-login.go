@@ -45,11 +45,5 @@ func (as *AuthServer) MSG_LOGINHandle(data interface{}) ([]byte, error) {
 		return nil, err
 	}
 
-	// tokenPackBytes, err := msgpack.Marshal(tokenPack)
-
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	return buf.Bytes(), nil
 }
