@@ -1,12 +1,10 @@
 package authserver
 
 import (
-	"bytes"
+	"errors"
 	"main/gmessages"
 	"main/packets"
 	"main/utils"
-
-	"github.com/vmihailenco/msgpack/v5"
 )
 
 func (as *AuthServer) MSG_LOGINHandle(data interface{}) ([]byte, error) {
@@ -37,13 +35,11 @@ func (as *AuthServer) MSG_LOGINHandle(data interface{}) ([]byte, error) {
 
 	// msg pack the token
 
-	var buf bytes.Buffer
+	bytes, err := utils.Encode(&tokenPack)
 
-	enc := msgpack.NewEncoder(&buf)
-	enc.UseArrayEncodedStructs(true)
-	if err := enc.Encode(&tokenPack); err != nil {
-		return nil, err
+	if err != nil {
+		return nil, errors.New("INTERNAL_ERROR")
 	}
 
-	return buf.Bytes(), nil
+	return bytes, nil
 }

@@ -1,0 +1,6 @@
+package exceptions
+
+const (
+	INVALID_CREDENTIALS = "INVALID_CREDENTIALS"
+	INTERNAL_ERROR      = "INTERNAL_ERROR"
+)

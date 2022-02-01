@@ -7,6 +7,8 @@ import (
 	"main/authservice"
 	"main/db"
 	"main/packets"
+	"main/responses"
+	"main/utils"
 	"net"
 	"os"
 	"reflect"
@@ -174,22 +176,47 @@ func (as *AuthServer) handleLogicChannel(logic <-chan packets.PacketDTO, send ch
 
 			retVal, err := ret[0], ret[1]
 
+			// var content []byte
+			// var encodeError error
+
 			// get reflect of err and check if it's nil
 			if err.Interface() != nil {
 				// get the error string from the error interface
 				errString := err.Interface().(error).Error()
+
+				var content []byte
+
+				if response, encodeError := utils.Encode(responses.Fail(errString)); encodeError == nil {
+					content = response
+				} else {
+					log.Println("Error encoding response: ", encodeError)
+					content = []byte(errString)
+				}
+
 				send <- packets.ReturnPacketDTO{
 					ID:      packet.ID,
 					Conn:    packet.Connection,
-					Content: []byte(errString),
+					Content: content,
 				}
 				continue
+			}
+
+			var content []byte
+
+			log.Printf("%v\n", retVal.Interface().([]byte))
+			Response := responses.Success(retVal.Interface().([]byte))
+
+			if response, encodeError := utils.Encode(Response); encodeError == nil {
+				content = response
+			} else {
+				log.Println("Error encoding response: ", encodeError)
+				content = []byte(err.Interface().(error).Error())
 			}
 
 			send <- packets.ReturnPacketDTO{
 				ID:      packet.ID,
 				Conn:    packet.Connection,
-				Content: retVal.Interface().([]byte),
+				Content: content,
 			}
 		}
 	}

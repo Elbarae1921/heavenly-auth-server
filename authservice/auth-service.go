@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"main/db"
+	"main/exceptions"
 	"main/packets"
 	"time"
 
@@ -34,15 +35,15 @@ func (as *AuthService) Login(username string, password string) (*packets.Token, 
 	}
 
 	if errors.Is(err, db.ErrNotFound) {
-		return nil, errors.New("invalid credentials")
+		return nil, errors.New(exceptions.INVALID_CREDENTIALS)
 	} else if err != nil {
 		log.Printf("Error occurred: %s", err)
-		return nil, errors.New("error occurred")
+		return nil, errors.New(exceptions.INTERNAL_ERROR)
 	}
 
 	// check if the password matches with bcrypt CompareHashAndPassword
 	if err := bcrypt.CompareHashAndPassword([]byte(account.Password), passwordBytes); err != nil {
-		return nil, errors.New("invalid credentials")
+		return nil, errors.New(exceptions.INVALID_CREDENTIALS)
 	}
 	// create a timestamp that expires in 5 minutes
 	expiresAt := time.Now().Add(5 * time.Minute).Unix()
