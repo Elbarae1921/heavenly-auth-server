@@ -18,3 +18,10 @@ run
 ```
 go get
 ```
+
+### Running the code
+Simply run 
+```
+go run ./main.go
+```
+
