@@ -11,7 +11,7 @@ import (
 func init() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Print("No .env file found")
 	}
 
 	// check if rsa.private file exists, if it doesn't, log fatal

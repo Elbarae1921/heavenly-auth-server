@@ -13,5 +13,5 @@ RUN go build -o ./auth-server
 FROM golang:1.16 as release
 WORKDIR /root/
 COPY --from=build /usr/auth-server/auth-server ./
-COPY .env rsa.private ./
+COPY rsa.private ./
 ENTRYPOINT [ "./auth-server" ]
