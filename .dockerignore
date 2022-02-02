@@ -1,6 +1,7 @@
 docker-compose.yml
 Dockerfile
 .gitignore
+.github
 .env.template
 README.md
 ./**/.gitignore
