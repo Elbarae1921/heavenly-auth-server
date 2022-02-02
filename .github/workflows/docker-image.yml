@@ -10,7 +10,7 @@ concurrency:
 
 jobs:
 
-  build-Frontend:
+  build-Auth-Server:
 
     runs-on: ubuntu-latest
 
@@ -28,7 +28,7 @@ jobs:
     - name: Build & Publish Auth Server
       uses: docker/build-push-action@v2
       with:
-        tags: ghcr.io/Heavenly-Dragons/auth-server:latest
+        tags: ghcr.io/heavenly-dragons/auth-server:latest
         push: true
-        cache-from: type=registry,ref=ghcr.io/Heavenly-Dragons/auth-server:latest
+        cache-from: type=registry,ref=ghcr.io/heavenly-dragons/auth-server:latest
         cache-to: type=inline
