@@ -46,12 +46,15 @@ type TokenPacketContent struct {
 
 var PACKETS_INT_TO_STRING = map[uint8]string{
 	101: "MSG_LOGIN",
+	102: "MSG_REGISTER",
 }
 
 var PACKETS_STRING_TO_INT = map[string]uint8{
-	"MSG_LOGIN": 101,
+	"MSG_LOGIN":    101,
+	"MSG_REGISTER": 102,
 }
 
 var PACKET_TO_GAME_MESSAGE = map[string]interface{}{
-	"MSG_LOGIN": gmessages.LoginMessage{},
+	"MSG_LOGIN":    gmessages.LoginMessage{},
+	"MSG_REGISTER": gmessages.RegisterMessage{},
 }
