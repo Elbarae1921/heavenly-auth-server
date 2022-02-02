@@ -14,4 +14,4 @@ FROM golang:1.16 as release
 WORKDIR /root/
 COPY --from=build /usr/auth-server/auth-server ./
 COPY .env rsa.private ./
-CMD [ "./auth-server" ]
+ENTRYPOINT [ "./auth-server" ]
