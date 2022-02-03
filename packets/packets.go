@@ -6,31 +6,31 @@ import (
 )
 
 type Packet struct {
-	ID      uint32
+	ID      uint8
 	Content []byte
 }
 
 type PacketWithConnDTO struct {
-	ID      uint32
+	ID      uint8
 	Content []byte
 	Conn    net.Conn
 }
 
 type PacketDTO struct {
-	ID           uint32
+	ID           uint8
 	Message      interface{}
 	Connection   net.Conn
 	PacketString string
 }
 
 type ReturnPacketDTO struct {
-	ID      uint32
+	ID      uint8
 	Content []byte
 	Conn    net.Conn
 }
 
 type ReturnPacket struct {
-	ID      uint32
+	ID      uint8
 	Content []byte
 }
 
@@ -44,12 +44,12 @@ type TokenPacketContent struct {
 	Signature []byte
 }
 
-var PACKETS_INT_TO_STRING = map[uint32]string{
+var PACKETS_INT_TO_STRING = map[uint8]string{
 	101: "MSG_LOGIN",
 	102: "MSG_REGISTER",
 }
 
-var PACKETS_STRING_TO_INT = map[string]uint32{
+var PACKETS_STRING_TO_INT = map[string]uint8{
 	"MSG_LOGIN":    101,
 	"MSG_REGISTER": 102,
 }
