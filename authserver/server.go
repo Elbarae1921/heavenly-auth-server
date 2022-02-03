@@ -213,7 +213,7 @@ func (as *AuthServer) ListenForPackets(conn net.Conn, receive chan<- packets.Pac
 		if err != nil {
 			log.Println("Error unmarshalling packet: ", err)
 			conn.Close()
-			continue
+			return
 		}
 
 		// create a new packet with conn
