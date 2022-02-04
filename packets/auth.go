@@ -1,4 +1,4 @@
-package auth
+package packets
 
 // From Client
 type LoginMessage struct {
