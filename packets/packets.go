@@ -24,11 +24,6 @@ type ReturnPacketDTO struct {
 	Conn    net.Conn
 }
 
-type ReturnPacket struct {
-	ID      uint16
-	Content []byte
-}
-
 type TokenPacketContent struct {
 	Token     Token
 	Signature []byte
