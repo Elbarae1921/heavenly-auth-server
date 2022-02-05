@@ -6,6 +6,13 @@ type LoginMessage struct {
    Password string
 }
 
+// From Client
+type RegisterMessage struct {
+   Username string
+   Password string
+   Email    string
+}
+
 type Token struct {
    UserId    uint64
    ExpiresAt int64
