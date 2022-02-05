@@ -178,10 +178,19 @@ func (as *AuthServer) handleLogicChannel(logic <-chan packets.PacketDTO, send ch
 			if err.Interface() != nil {
 				// get the error string from the error interface
 				errString := err.Interface().(error).Error()
+				var buf bytes.Buffer
+				errorPack := &packets.Error{
+					Message: errString,
+				}
+				enc := msgpack.NewEncoder(&buf)
+				enc.UseArrayEncodedStructs(true)
+				if err := enc.Encode(&errorPack); err != nil {
+					panic(err);
+				}
 				send <- packets.ReturnPacketDTO{
-					ID:      packet.ID,
+					ID:      0,
 					Conn:    packet.Connection,
-					Content: []byte(errString),
+					Content: buf.Bytes(),
 				}
 				continue
 			}

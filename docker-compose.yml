@@ -22,7 +22,7 @@ services:
     env_file:
       - .env
     ports:
-      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
+      - "${POSTGRES_PORT}:5432"
     volumes:
       - pgsql-volume:/var/lib/postgresql/data:delegated
     networks:
