@@ -34,11 +34,6 @@ type ReturnPacket struct {
 	Content []byte
 }
 
-type Token struct {
-	UserId    uint64
-	ExpiresAt int64
-}
-
 type TokenPacketContent struct {
 	Token     Token
 	Signature []byte
