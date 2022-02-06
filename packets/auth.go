@@ -29,6 +29,7 @@ type Error struct {
    Message string
 }
 
+// From Client
 type HandshakeMessage struct {
    Token     Token
    Signature []byte
