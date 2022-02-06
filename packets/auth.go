@@ -28,3 +28,8 @@ type LoginResponse struct {
 type Error struct {
    Message string
 }
+
+type HandshakeMessage struct {
+   Token     Token
+   Signature []byte
+}
