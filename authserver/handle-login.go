@@ -2,15 +2,14 @@ package authserver
 
 import (
 	"bytes"
-	"main/gmessages"
 	"main/packets"
 	"main/utils"
 
 	"github.com/vmihailenco/msgpack/v5"
 )
 
-func (as *AuthServer) MSG_LOGINHandle(data interface{}) ([]byte, error) {
-	newData := *data.(*gmessages.LoginMessage)
+func (as *AuthServer) LoginMessageHandle(data interface{}) ([]byte, error) {
+	newData := *data.(*packets.LoginMessage)
 	// load our private key
 	key, err := utils.LoadPrivateKey()
 	// generate a new token
@@ -18,7 +17,7 @@ func (as *AuthServer) MSG_LOGINHandle(data interface{}) ([]byte, error) {
 		return nil, err
 	}
 
-	token, err := as.AuthService.Login(newData.UserName, newData.Password)
+	token, err := as.AuthService.Login(newData.Username, newData.Password)
 	if err != nil {
 		return nil, err
 	}

@@ -2,16 +2,15 @@ package authserver
 
 import (
 	"bytes"
-	"main/gmessages"
 	"main/packets"
 
 	"github.com/vmihailenco/msgpack/v5"
 )
 
-func (as *AuthServer) MSG_REGISTERHandle(data interface{}) ([]byte, error) {
-	newData := *data.(*gmessages.RegisterMessage)
+func (as *AuthServer) RegisterMessageHandle(data interface{}) ([]byte, error) {
+	newData := *data.(*packets.RegisterMessage)
 
-	token, err := as.AuthService.Register(newData.UserName, newData.Email, newData.Password)
+	token, err := as.AuthService.Register(newData.Username, newData.Email, newData.Password)
 	if err != nil {
 		return nil, err
 	}
