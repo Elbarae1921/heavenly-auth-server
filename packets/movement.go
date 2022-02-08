@@ -8,14 +8,14 @@ type MoveMessage struct {
 
 // From Server
 type MovedMessage struct {
-   Id int64
+   Id uint64
    X  float32
    Y  float32
 }
 
 // From Server
 type MovableSpawned struct {
-   Id int64
+   Id uint64
    X  float32
    Y  float32
 }
