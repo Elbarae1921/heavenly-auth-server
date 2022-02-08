@@ -2,12 +2,20 @@ package packets
 
 // From Client
 type MoveMessage struct {
-   X int64
-   Y int64
+   X float32
+   Y float32
 }
 
 // From Server
-type MoveCorrectionMessage struct {
-   X int64
-   Y int64
+type MovedMessage struct {
+   Id int64
+   X  float32
+   Y  float32
+}
+
+// From Server
+type MovableSpawned struct {
+   Id int64
+   X  float32
+   Y  float32
 }
