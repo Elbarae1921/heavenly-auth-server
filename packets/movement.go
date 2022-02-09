@@ -5,6 +5,7 @@ type MoveMessage struct {
    R float32
    X float32
    Y float32
+   Z float32
 }
 
 // From Server
@@ -13,6 +14,7 @@ type MovedMessage struct {
    R  float32
    X  float32
    Y  float32
+   Z  float32
 }
 
 // From Server
@@ -21,4 +23,5 @@ type MovableSpawned struct {
    R  float32
    X  float32
    Y  float32
+   Z  float32
 }
