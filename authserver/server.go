@@ -1,12 +1,12 @@
 package authserver
 
 import (
-	"bytes"
 	"io"
 	"log"
 	"main/authservice"
 	"main/db"
 	"main/packets"
+	"main/utils"
 	"net"
 	"os"
 	"reflect"
@@ -146,17 +146,14 @@ func (as *AuthServer) handleWriteChannel(send <-chan packets.ReturnPacketDTO) {
 	for {
 		packet := <-send
 
-		var buf bytes.Buffer
+		bytes, err := utils.Encode(&packets.Packet{ID: packet.ID, Content: packet.Content})
 
-		enc := msgpack.NewEncoder(&buf)
-		enc.UseArrayEncodedStructs(true)
-		err := enc.Encode(&packets.Packet{ID: packet.ID, Content: packet.Content})
 		if err != nil {
 			panic(err)
 		}
 
-		log.Println("Sending bytes: ", buf.Bytes())
-		packet.Conn.Write(buf.Bytes())
+		log.Println("Sending bytes: ", bytes)
+		packet.Conn.Write(bytes)
 	}
 }
 
@@ -178,19 +175,21 @@ func (as *AuthServer) handleLogicChannel(logic <-chan packets.PacketDTO, send ch
 			if err.Interface() != nil {
 				// get the error string from the error interface
 				errString := err.Interface().(error).Error()
-				var buf bytes.Buffer
+
 				errorPack := &packets.Error{
 					Message: errString,
 				}
-				enc := msgpack.NewEncoder(&buf)
-				enc.UseArrayEncodedStructs(true)
-				if err := enc.Encode(&errorPack); err != nil {
-					panic(err);
+
+				bytes, err := utils.Encode(&errorPack)
+
+				if err != nil {
+					panic(err)
 				}
+
 				send <- packets.ReturnPacketDTO{
 					ID:      0,
 					Conn:    packet.Connection,
-					Content: buf.Bytes(),
+					Content: bytes,
 				}
 				continue
 			}
