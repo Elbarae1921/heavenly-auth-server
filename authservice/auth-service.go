@@ -64,7 +64,7 @@ func (as *AuthService) Register(username string, email string, password string) 
 		db.Account.Username.Equals(username),
 	).Exec(ctx)
 
-	if err != nil {
+	if err != nil && err != db.ErrNotFound {
 		log.Printf("Error occurred: %s", err)
 		return nil, errors.New("error occurred")
 	}
