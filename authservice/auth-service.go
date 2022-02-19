@@ -61,9 +61,12 @@ func (as *AuthService) Register(username string, email string, password string) 
 	ctx := context.Background()
 
 	// find the username in the database
-	account, err := as.Client.Account.FindUnique(
+	account, err := as.Client.Account.FindFirst(db.Account.Or(
 		db.Account.Username.Equals(username),
-	).Exec(ctx)
+		db.Account.Email.Equals(email),
+		db.Account.Username.Equals(email),
+		db.Account.Email.Equals(username),
+	)).Exec(ctx)
 
 	if err != nil && err != db.ErrNotFound {
 		log.Printf("Error occurred: %s", err)
