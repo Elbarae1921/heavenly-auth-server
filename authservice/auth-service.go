@@ -6,6 +6,7 @@ import (
 	"log"
 	"main/db"
 	"main/packets"
+	"main/servererrors"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -34,15 +35,15 @@ func (as *AuthService) Login(username string, password string) (*packets.Token, 
 	}
 
 	if errors.Is(err, db.ErrNotFound) {
-		return nil, errors.New("invalid credentials")
+		return nil, errors.New(servererrors.ErrInvalid)
 	} else if err != nil {
 		log.Printf("Error occurred: %s", err)
-		return nil, errors.New("error occurred")
+		return nil, errors.New(servererrors.ErrInternal)
 	}
 
 	// check if the password matches with bcrypt CompareHashAndPassword
 	if err := bcrypt.CompareHashAndPassword([]byte(account.Password), passwordBytes); err != nil {
-		return nil, errors.New("invalid credentials")
+		return nil, errors.New(servererrors.ErrInvalid)
 	}
 	// create a timestamp that expires in 5 minutes
 	expiresAt := time.Now().Add(5 * time.Minute).Unix()
@@ -66,12 +67,12 @@ func (as *AuthService) Register(username string, email string, password string) 
 
 	if err != nil && err != db.ErrNotFound {
 		log.Printf("Error occurred: %s", err)
-		return nil, errors.New("error occurred")
+		return nil, errors.New(servererrors.ErrInternal)
 	}
 
 	// check if the username already exists
 	if account != nil {
-		return nil, errors.New("username already exists")
+		return nil, errors.New(servererrors.ErrExists)
 	}
 
 	// hash the password
@@ -79,7 +80,7 @@ func (as *AuthService) Register(username string, email string, password string) 
 
 	if err != nil {
 		log.Printf("Error occurred: %s", err)
-		return nil, errors.New("error occurred")
+		return nil, errors.New(servererrors.ErrInternal)
 	}
 
 	// create a new account
@@ -89,7 +90,7 @@ func (as *AuthService) Register(username string, email string, password string) 
 		db.Account.Email.Set(email),
 	).Exec(ctx)
 	if err != nil {
-		return nil, errors.New("error occurred")
+		return nil, errors.New(servererrors.ErrInternal)
 	}
 
 	// create a timestamp that expires in 5 minutes
