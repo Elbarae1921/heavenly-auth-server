@@ -15,7 +15,7 @@ model Account {
     id        BigInt   @id @default(autoincrement())
     username  String   @unique
     password  String   @db.VarChar(255)
-    email     String   @db.VarChar(255)
+    email     String   @db.VarChar(255) @unique
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 }
