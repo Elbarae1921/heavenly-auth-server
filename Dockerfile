@@ -16,3 +16,4 @@ FROM alpine:latest as release
 WORKDIR /app
 COPY --from=build /usr/auth-server/auth-server ./
 COPY rsa.private ./
+ENTRYPOINT [ "./auth-server" ]
