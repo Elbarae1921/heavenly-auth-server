@@ -8,10 +8,11 @@ COPY schema.prisma ./
 RUN mkdir db && go run github.com/prisma/prisma-client-go generate
 
 COPY . .
-RUN go build -o ./auth-server
+ENV CGO_ENABLED=0
 
-FROM golang:1.17 as release
-WORKDIR /root/
+RUN GOOS=linux go build -o ./auth-server
+
+FROM alpine:latest as release
+WORKDIR /app
 COPY --from=build /usr/auth-server/auth-server ./
 COPY rsa.private ./
-ENTRYPOINT [ "./auth-server" ]
