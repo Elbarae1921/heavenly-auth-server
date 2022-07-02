@@ -1,5 +1,7 @@
 # Heavenly Dragons Authentication Server
 
+The RSA key is used for nothing else but local development.
+
 ## Setting up the project
 ### Environment
 Create a `.env` file from the `.env.template`
